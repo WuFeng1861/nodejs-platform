@@ -32,6 +32,24 @@ export class PackageService {
           });
         });
       }
+      
+      const { stdout: globalStdout } = await execAsync('npm list -g --json --depth=0');
+      const globalResult = JSON.parse(globalStdout);
+      
+      if (globalResult.dependencies) {
+        Object.entries(globalResult.dependencies).forEach(([name, info]: [string, any]) => {
+          // 检查是否已经存在本地包，避免重复
+          const existingPackage = packages.find(pkg => pkg.name === name);
+          if (!existingPackage) {
+            packages.push({
+              name,
+              version: info.version,
+              installed: true,
+              description: info.description,
+            });
+          }
+        });
+      }
 
       return packages;
     } catch (error) {
