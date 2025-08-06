@@ -7,7 +7,7 @@ const state = {
   packages: [],
   currentAction: null,
   currentActionData: null,
-  apiBaseUrl: 'http://localhost:62999/api',
+  apiBaseUrl: 'https://nodeplatform.wufeng98.cn/api',
   authToken: '', // 使用特殊密码获取完整代码内容
   currentParameters: {} // 存储当前执行参数
 };
