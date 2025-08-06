@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Node.js 代码执行平台</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="axios.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<!-- 密码验证模态框 -->
+<div class="modal" id="passwordModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">需要密码验证</h3>
+    </div>
+    <div class="form-group">
+      <label for="passwordInput">请输入操作密码</label>
+      <input type="password" id="passwordInput" class="form-control" placeholder="输入密码...">
+      <p id="passwordError" style="color: var(--danger-color); margin-top: 8px; display: none;">密码不正确，请重试</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelPasswordBtn">取消</button>
+      <button class="btn btn-primary" id="confirmPasswordBtn">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 添加代码模态框 -->
+<div class="modal" id="addCodeModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">添加新代码</h3>
+    </div>
+    <div class="form-group">
+      <label for="codeTitle">标题</label>
+      <input type="text" id="codeTitle" class="form-control" placeholder="输入代码标题...">
+    </div>
+    <div class="form-group">
+      <label for="codeDescription">描述</label>
+      <textarea id="codeDescription" class="form-control" placeholder="输入代码描述..."></textarea>
+    </div>
+    <div class="form-group">
+      <label for="codeContent">代码内容</label>
+      <textarea id="codeContent" class="form-control" placeholder="输入代码内容..." rows="10"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="codeParameters">参数配置 (JSON格式)</label>
+      <textarea id="codeParameters" class="form-control" placeholder='例如：{"name": {"type": "string", "description": "用户名", "required": true}}' rows="5"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelAddCodeBtn">取消</button>
+      <button class="btn btn-primary" id="submitAddCodeBtn">提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- 安装包模态框 -->
+<div class="modal" id="installPackageModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">安装新包</h3>
+    </div>
+    <div class="form-group">
+      <label for="packageName">包名称</label>
+      <input type="text" id="packageName" class="form-control" placeholder="输入npm包名称...">
+    </div>
+    <div class="form-group">
+      <label for="packageVersion">版本 (可选)</label>
+      <input type="text" id="packageVersion" class="form-control" placeholder="输入版本号...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelInstallPackageBtn">取消</button>
+      <button class="btn btn-primary" id="submitInstallPackageBtn">安装</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="header-container">
+    <div class="logo">
+      <i class="fas fa-code"></i>
+      <span>Node.js 代码执行平台</span>
+    </div>
+    <div class="controls">
+      <button class="control-btn" id="themeToggle">
+        <i class="fas fa-moon"></i>
+      </button>
+      <button class="control-btn" id="languageToggle">
+        <i class="fas fa-globe"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="main-content">
+    <div class="sidebar">
+      <h3 class="sidebar-title">功能导航</h3>
+      <div class="nav-item active" data-target="code-management">
+        <i class="fas fa-file-code"></i>
+        <span>代码管理</span>
+      </div>
+      <div class="nav-item" data-target="package-management">
+        <i class="fas fa-box"></i>
+        <span>包管理</span>
+      </div>
+      <div class="nav-item" data-target="execute-code">
+        <i class="fas fa-play-circle"></i>
+        <span>执行代码</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- 代码管理区域 -->
+      <div id="code-management" class="content-section">
+        <div class="content-header">
+          <h2 class="content-title">代码管理</h2>
+          <button class="btn btn-primary" id="addCodeBtn">
+            <i class="fas fa-plus"></i> 添加新代码
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">代码列表</h3>
+            <button class="btn btn-warning" id="refreshCodeListBtn">
+              <i class="fas fa-sync"></i> 刷新列表
+            </button>
+          </div>
+          <div id="codeList">
+            <div class="empty-state" style="text-align: center; padding: 20px;">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p>加载中...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 包管理区域 -->
+      <div id="package-management" class="content-section" style="display: none;">
+        <div class="content-header">
+          <h2 class="content-title">包管理</h2>
+          <div class="search-box">
+            <input type="text" class="form-control" id="packageSearch" placeholder="搜索包..." style="width: 250px;">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">已安装的包</h3>
+            <div>
+              <button class="btn btn-warning" id="refreshPackageListBtn" style="margin-right: 10px;">
+                <i class="fas fa-sync"></i> 刷新
+              </button>
+              <button class="btn btn-primary" id="installPackageBtn">
+                <i class="fas fa-download"></i> 安装新包
+              </button>
+            </div>
+          </div>
+          <div class="package-grid" id="packageList">
+            <div class="empty-state" style="text-align: center; padding: 20px; grid-column: 1 / -1;">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p>加载中...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 执行代码区域 -->
+      <div id="execute-code" class="content-section" style="display: none;">
+        <div class="content-header">
+          <h2 class="content-title">执行代码</h2>
+        </div>
+
+        <div class="card">
+          <div class="form-group">
+            <label for="codeSelect">选择要执行的代码</label>
+            <select id="codeSelect" class="form-control">
+              <option value="">-- 选择代码 --</option>
+            </select>
+          </div>
+
+          <div class="code-content" id="selectedCodePreview">
+            // 选择代码后预览将显示在这里
+          </div>
+
+          <!-- 参数表单区域 -->
+          <div id="parametersFormContainer" style="display: none; margin-top: 20px;">
+            <h4>执行参数</h4>
+            <div id="parametersForm">
+              <!-- 参数行将动态添加到这里 -->
+            </div>
+            <button class="btn btn-primary add-parameter-btn" id="addParameterBtn" style="margin-top: 10px;">
+              <i class="fas fa-plus"></i> 添加参数
+            </button>
+          </div>
+
+          <div class="actions" style="margin-top: 20px;">
+            <button class="btn btn-primary" id="executeCodeBtn">
+              <i class="fas fa-play"></i> 执行代码
+            </button>
+          </div>
+
+          <div class="output-container" style="margin-top: 20px;">
+            <h3 class="output-header">
+              <i class="fas fa-terminal"></i> 执行输出
+            </h3>
+            <div class="output-content" id="executeOutput">
+              // 执行结果将显示在这里
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
