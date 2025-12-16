@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CodeService } from './code.service';
 import { CreateCodeDto } from './dto/create-code.dto';
+import { CreateJscFileDto } from './dto/create-jsc-file.dto';
 import { ExecuteCodeDto } from './dto/execute-code.dto';
 import { ExecuteResultDto } from './dto/execute-result.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
@@ -29,6 +30,26 @@ export class CodeController {
   @ApiResponse({ status: 201, description: '代码上传成功', type: Code })
   async create(@Body() createCodeDto: CreateCodeDto): Promise<Code> {
     return this.codeService.create(createCodeDto);
+  }
+
+  @Post('jsc-files')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '上传并编译字节码文件' })
+  @ApiResponse({ status: 201, description: '字节码文件编译成功' })
+  async createJscFile(
+    @Body() createJscFileDto: CreateJscFileDto,
+  ): Promise<{ fileName: string; description: string }> {
+    return this.codeService.createJscFile(createJscFileDto);
+  }
+
+  @Get('jsc-files')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取所有字节码文件信息' })
+  @ApiResponse({ status: 200, description: '获取字节码文件列表成功' })
+  async listJscFiles(): Promise<Array<{ fileName: string; description: string }>> {
+    return this.codeService.listJscFiles();
   }
 
   @Get()

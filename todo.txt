@@ -1,0 +1,34 @@
+1. 添加一个API叫做将我上传的代码（不是之前的上传代码，这是专门将代码转换成字节码文件的API）使用bytenode打包成字节码文件（同时需要上传代码的介绍），并保存在path.join(process.cwd(), 'jscFils')中，同时将代码文件名和介绍写入mysql，然后返回文件名称和对应的介绍
+2. 添加一个API获取所有我上传的代码文件名和对应的介绍
+3. 执行代码添加bytenode库和对应的require
+4. 执行代码添加加密库crypto和对应的require
+
+
+
+提示：
+1. 上传的需要编译成字节码的代码为一个箭头函数，函数的参数为params
+2. 一般我会内置hash验证密码功能，传入的参数需要带密码字段pass
+  2.1 这个的实现我应该这样，在里面写入任意密码比如123456，然后使用sha256变成字符串，然后对比，不对直接打印错误就好了
+3. 上传字节码代码例子
+      const crypto = require('crypto');
+      const checkPass = (params) => {
+        const passHash = crypto.createHash('sha256').update(params.passto.String()).digest('hex');
+        const hashResult = '0x1545sads';
+        if (passHash !== hashResult) {
+          return false;
+        }
+        return true
+      }
+      module.exports = function func(params) {
+        let checkResult = checkPass(params);
+        if(!checkResult) {
+          return;
+        }
+        // 这里写逻辑代码
+        return params.a+1;
+      };
+4. 之前的上传代码如果有用到字节码文件注意要符合下面的例子（逻辑代码一般放在字节码文件中，安全一点）
+  let result = require(byteCodePath);
+  result(params);
+
+
