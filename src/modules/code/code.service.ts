@@ -128,6 +128,7 @@ const params = ${JSON.stringify(executeCodeDto.params, null, 2)};
         codeContent = paramsCode + codeContent;
       }
 
+      console.log('codeContent', codeContent);
       // 将代码写入临时文件
       fs.writeFileSync(filePath, codeContent, 'utf8');
 

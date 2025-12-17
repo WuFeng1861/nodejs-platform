@@ -25,10 +25,33 @@
           return;
         }
         // 这里写逻辑代码
-        return params.a+1;
+        console.log(Number(params.a)+1)
+        return Number(params.a)+1;
       };
 4. 之前的上传代码如果有用到字节码文件注意要符合下面的例子（逻辑代码一般放在字节码文件中，安全一点）
-  let result = require(byteCodePath);
-  result(params);
+const bytenode = require('bytenode');
+const fs = require('fs');
+const path = require('path');
+
+const fileName = 'jsc_1766004354045_c268e1ec96995f32.jsc';
+const jscDir = path.join(process.cwd(), '../jscFils');
+const jscPath = path.join(jscDir, fileName);
+/**
+ * 判断文件是否存在
+ * @param {string} filePath - 文件的相对或绝对路径
+ * @returns {boolean} - 文件存在返回 true，否则返回 false
+ */
+function fileExists(filePath) {
+  try {
+    const resolvedPath = path.resolve(filePath);
+    return fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile();
+  } catch (err) {
+    return false;
+  }
+}
+console.log(fileExists(jscPath), jscPath);
+let result = require(jscPath);
+result(params);
+
 
 

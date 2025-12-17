@@ -5,11 +5,14 @@ const state = {
   password: '',
   codes: [],
   packages: [],
+  bytecodes: [],
   currentAction: null,
   currentActionData: null,
-  apiBaseUrl: 'https://nodeplatform.wufeng98.cn/api',
+  // apiBaseUrl: 'https://nodeplatform.wufeng98.cn/api',
+  apiBaseUrl: 'http://localhost:62999/api',
   authToken: '', // 使用特殊密码获取完整代码内容
-  currentParameters: {} // 存储当前执行参数
+  currentParameters: {}, // 存储当前执行参数
+  currentParameterDefinitions: {} // 存储当前参数定义（含类型信息）
 };
 
 // DOM 元素
@@ -42,8 +45,18 @@ const elements = {
   packageSearch: document.getElementById('packageSearch'),
   parametersFormContainer: document.getElementById('parametersFormContainer'),
   parametersForm: document.getElementById('parametersForm'),
-  addParameterBtn: document.getElementById('addParameterBtn'),
-  codeParameters: document.getElementById('codeParameters') // 参数配置输入框
+  // addParameterBtn: document.getElementById('addParameterBtn'),
+  codeParameters: document.getElementById('codeParameters'), // 参数配置输入框
+
+  // 字节码管理相关元素
+  bytecodeList: document.getElementById('bytecodeList'),
+  uploadBytecodeBtn: document.getElementById('uploadBytecodeBtn'),
+  refreshBytecodeListBtn: document.getElementById('refreshBytecodeListBtn'),
+  uploadBytecodeModal: document.getElementById('uploadBytecodeModal'),
+  cancelUploadBytecodeBtn: document.getElementById('cancelUploadBytecodeBtn'),
+  submitUploadBytecodeBtn: document.getElementById('submitUploadBytecodeBtn'),
+  bytecodeDescription: document.getElementById('bytecodeDescription'),
+  bytecodeContent: document.getElementById('bytecodeContent')
 };
 
 // 初始化应用
@@ -60,6 +73,7 @@ function initApp() {
   // 加载数据
   loadCodeList();
   loadPackageList();
+  loadBytecodeList();
 }
 
 // 设置主题
@@ -83,12 +97,27 @@ function setLanguage(lang) {
     document.querySelector('.logo span').textContent = 'Node.js Code Execution Platform';
     document.querySelector('[data-target="code-management"] span').textContent = 'Code Management';
     document.querySelector('[data-target="package-management"] span').textContent = 'Package Management';
+    document.querySelector('[data-target="bytecode-management"] span').textContent = 'Bytecode Management';
     document.querySelector('[data-target="execute-code"] span').textContent = 'Execute Code';
-    document.querySelector('.content-title').textContent = 'Code Management';
+
+    // 更新内容区域标题
+    if (document.querySelector('#code-management').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = 'Code Management';
+    } else if (document.querySelector('#package-management').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = 'Package Management';
+    } else if (document.querySelector('#bytecode-management').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = 'Bytecode Management';
+    } else if (document.querySelector('#execute-code').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = 'Execute Code';
+    }
+
     document.querySelector('#addCodeBtn').innerHTML = '<i class="fas fa-plus"></i> Add New Code';
     document.querySelector('#refreshCodeListBtn').innerHTML = '<i class="fas fa-sync"></i> Refresh';
     document.querySelector('#installPackageBtn').innerHTML = '<i class="fas fa-download"></i> Install Package';
     document.querySelector('#refreshPackageListBtn').innerHTML = '<i class="fas fa-sync"></i> Refresh';
+    document.querySelector('#uploadBytecodeBtn').innerHTML = '<i class="fas fa-upload"></i> Upload & Compile';
+    document.querySelector('#refreshBytecodeListBtn').innerHTML = '<i class="fas fa-sync"></i> Refresh List';
+
     document.querySelector('#codeSelect option[value=""]').textContent = '-- Select Code --';
     document.querySelector('#selectedCodePreview').textContent = '// Code preview will appear here after selection';
     document.querySelector('#executeOutput').textContent = '// Execution results will appear here';
@@ -96,7 +125,7 @@ function setLanguage(lang) {
     // 更新参数表单标签
     if (elements.parametersFormContainer) {
       document.querySelector('#parametersFormContainer h4').textContent = 'Execution Parameters';
-      document.querySelector('#addParameterBtn').innerHTML = '<i class="fas fa-plus"></i> Add Parameter';
+      // document.querySelector('#addParameterBtn').innerHTML = '<i class="fas fa-plus"></i> Add Parameter';
     }
 
     // 更新参数配置输入框标签
@@ -108,12 +137,27 @@ function setLanguage(lang) {
     document.querySelector('.logo span').textContent = 'Node.js 代码执行平台';
     document.querySelector('[data-target="code-management"] span').textContent = '代码管理';
     document.querySelector('[data-target="package-management"] span').textContent = '包管理';
+    document.querySelector('[data-target="bytecode-management"] span').textContent = '字节码管理';
     document.querySelector('[data-target="execute-code"] span').textContent = '执行代码';
-    document.querySelector('.content-title').textContent = '代码管理';
+
+    // 更新内容区域标题
+    if (document.querySelector('#code-management').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = '代码管理';
+    } else if (document.querySelector('#package-management').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = '包管理';
+    } else if (document.querySelector('#bytecode-management').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = '字节码管理';
+    } else if (document.querySelector('#execute-code').style.display !== 'none') {
+      document.querySelector('.content-title').textContent = '执行代码';
+    }
+
     document.querySelector('#addCodeBtn').innerHTML = '<i class="fas fa-plus"></i> 添加新代码';
     document.querySelector('#refreshCodeListBtn').innerHTML = '<i class="fas fa-sync"></i> 刷新';
     document.querySelector('#installPackageBtn').innerHTML = '<i class="fas fa-download"></i> 安装新包';
     document.querySelector('#refreshPackageListBtn').innerHTML = '<i class="fas fa-sync"></i> 刷新';
+    document.querySelector('#uploadBytecodeBtn').innerHTML = '<i class="fas fa-upload"></i> 上传并编译';
+    document.querySelector('#refreshBytecodeListBtn').innerHTML = '<i class="fas fa-sync"></i> 刷新列表';
+
     document.querySelector('#codeSelect option[value=""]').textContent = '-- 选择代码 --';
     document.querySelector('#selectedCodePreview').textContent = '// 选择代码后预览将显示在这里';
     document.querySelector('#executeOutput').textContent = '// 执行结果将显示在这里';
@@ -121,7 +165,7 @@ function setLanguage(lang) {
     // 更新参数表单标签
     if (elements.parametersFormContainer) {
       document.querySelector('#parametersFormContainer h4').textContent = '执行参数';
-      document.querySelector('#addParameterBtn').innerHTML = '<i class="fas fa-plus"></i> 添加参数';
+      // document.querySelector('#addParameterBtn').innerHTML = '<i class="fas fa-plus"></i> 添加参数';
     }
 
     // 更新参数配置输入框标签
@@ -167,6 +211,8 @@ function setupEventListeners() {
         title.textContent = state.language === 'zh' ? '代码管理' : 'Code Management';
       } else if (target === 'package-management') {
         title.textContent = state.language === 'zh' ? '包管理' : 'Package Management';
+      } else if (target === 'bytecode-management') {
+        title.textContent = state.language === 'zh' ? '字节码管理' : 'Bytecode Management';
       } else if (target === 'execute-code') {
         title.textContent = state.language === 'zh' ? '执行代码' : 'Execute Code';
       }
@@ -182,6 +228,11 @@ function setupEventListeners() {
     showPasswordModal('addCode');
   });
 
+  // 上传字节码按钮
+  elements.uploadBytecodeBtn.addEventListener('click', () => {
+    showPasswordModal('uploadBytecode');
+  });
+
   // 安装包按钮
   elements.installPackageBtn.addEventListener('click', () => {
     showPasswordModal('installPackage');
@@ -189,6 +240,9 @@ function setupEventListeners() {
 
   // 刷新代码列表
   elements.refreshCodeListBtn.addEventListener('click', loadCodeList);
+
+  // 刷新字节码列表
+  elements.refreshBytecodeListBtn.addEventListener('click', loadBytecodeList);
 
   // 刷新包列表
   elements.refreshPackageListBtn.addEventListener('click', loadPackageList);
@@ -198,6 +252,12 @@ function setupEventListeners() {
     elements.addCodeModal.classList.remove('active');
   });
   elements.submitAddCodeBtn.addEventListener('click', submitAddCodeForm);
+
+  // 上传字节码模态框
+  elements.cancelUploadBytecodeBtn.addEventListener('click', () => {
+    elements.uploadBytecodeModal.classList.remove('active');
+  });
+  elements.submitUploadBytecodeBtn.addEventListener('click', submitUploadBytecodeForm);
 
   // 安装包模态框
   elements.cancelInstallPackageBtn.addEventListener('click', () => {
@@ -215,7 +275,7 @@ function setupEventListeners() {
   elements.packageSearch.addEventListener('input', filterPackages);
 
   // 添加参数按钮
-  elements.addParameterBtn.addEventListener('click', addParameterRow);
+  // elements.addParameterBtn.addEventListener('click', addParameterRow);
 }
 
 // 显示密码模态框
@@ -246,6 +306,11 @@ function confirmPassword() {
     if (state.currentAction === 'addCode') {
       // 显示添加代码模态框
       showAddCodeModal();
+    } else if (state.currentAction === 'uploadBytecode') {
+      // 显示上传字节码模态框
+      showUploadBytecodeModal();
+    } else if (state.currentAction === 'viewBytecodes') {
+      loadBytecodeList();
     } else if (state.currentAction === 'deleteCode') {
       deleteCode(state.currentActionData);
     } else if (state.currentAction === 'installPackage') {
@@ -271,6 +336,16 @@ function showAddCodeModal() {
 
   // 显示模态框
   elements.addCodeModal.classList.add('active');
+}
+
+// 显示上传字节码模态框
+function showUploadBytecodeModal() {
+  // 重置表单
+  document.getElementById('bytecodeDescription').value = '';
+  document.getElementById('bytecodeContent').value = '';
+
+  // 显示模态框
+  elements.uploadBytecodeModal.classList.add('active');
 }
 
 // 显示安装包模态框
@@ -336,6 +411,55 @@ function submitAddCodeForm() {
       console.error('添加代码失败:', error);
       showAlert(state.language === 'zh' ? '添加代码失败：' + (error.response?.data?.message || error.message) :
         'Failed to add code: ' + (error.response?.data?.message || error.message), 'error');
+    });
+}
+
+// 提交上传字节码表单
+function submitUploadBytecodeForm() {
+  const description = document.getElementById('bytecodeDescription').value;
+  const content = document.getElementById('bytecodeContent').value;
+
+  if (!description || !content) {
+    alert(state.language === 'zh' ? '请填写所有字段！' : 'Please fill all fields!');
+    return;
+  }
+
+  // 简单的格式校验：检查是否看起来像箭头函数
+  if (!content.includes('=>')) {
+    if (!confirm(state.language === 'zh' ? '代码看起来不像箭头函数，确定要提交吗？' : 'Code does not look like an arrow function, proceed anyway?')) {
+      return;
+    }
+  }
+
+  const payload = {
+    content,
+    description
+  };
+
+  // 调用API上传字节码
+  axios.post(`${state.apiBaseUrl}/codes/jsc-files`, payload, {
+    headers: {
+      'Authorization': `Bearer ${state.authToken}`
+    }
+  })
+    .then(response => {
+      // API 返回直接是 { fileName, description }，没有包装在 code/data 结构中
+      // 但考虑到 axios 的 response.data，如果后端返回的是对象
+      const data = response.data;
+      // 如果后端有统一返回结构，则需要判断 code。
+      // 根据之前的API实现，返回的是 { fileName, description }，没有统一包装
+      // 假设直接返回数据
+
+      elements.uploadBytecodeModal.classList.remove('active');
+      showAlert(state.language === 'zh' ? '字节码文件上传并编译成功！' : 'Bytecode file uploaded and compiled successfully!', 'success');
+
+      // 刷新列表
+      loadBytecodeList();
+    })
+    .catch(error => {
+      console.error('上传字节码失败:', error);
+      showAlert(state.language === 'zh' ? '上传失败：' + (error.response?.data?.message || error.message) :
+        'Upload failed: ' + (error.response?.data?.message || error.message), 'error');
     });
 }
 
@@ -432,6 +556,90 @@ function loadPackageList() {
       showAlert(state.language === 'zh' ? '获取包列表失败：' + (error.response?.data?.message || error.message) :
         'Failed to load package list: ' + (error.response?.data?.message || error.message), 'error');
     });
+}
+
+// 加载字节码列表
+function loadBytecodeList() {
+  elements.bytecodeList.innerHTML = `
+    <div class="empty-state" style="text-align: center; padding: 20px;">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>${state.language === 'zh' ? '加载中...' : 'Loading...'}</p>
+    </div>
+  `;
+
+  // 使用默认token或当前token
+  const token = state.authToken || 'wufeng-nodejs-platform'; // 确保有token，否则无法获取列表
+
+  axios.get(`${state.apiBaseUrl}/codes/jsc-files`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+    .then(response => {
+      // API直接返回数组
+      if (Array.isArray(response.data)) {
+        state.bytecodes = response.data;
+        renderBytecodeList();
+      } else {
+        // 兼容可能被拦截器包装的情况
+        state.bytecodes = response.data.data || [];
+        renderBytecodeList();
+      }
+    })
+    .catch(error => {
+      console.error('获取字节码列表失败:', error);
+      // 如果是401/403，提示需要密码
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        elements.bytecodeList.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-lock"></i>
+            <p>${state.language === 'zh' ? '需要输入密码才能查看列表' : 'Password required to view list'}</p>
+            <button class="btn btn-primary" onclick="showPasswordModal('viewBytecodes')">
+              ${state.language === 'zh' ? '输入密码' : 'Enter Password'}
+            </button>
+          </div>
+        `;
+      } else {
+        showAlert(state.language === 'zh' ? '获取字节码列表失败：' + (error.response?.data?.message || error.message) :
+          'Failed to load bytecode list: ' + (error.response?.data?.message || error.message), 'error');
+
+        elements.bytecodeList.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>${state.language === 'zh' ? '加载失败' : 'Failed to load'}</p>
+          </div>
+        `;
+      }
+    });
+}
+
+// 渲染字节码列表
+function renderBytecodeList() {
+  if (!state.bytecodes || state.bytecodes.length === 0) {
+    elements.bytecodeList.innerHTML = `
+      <div class="empty-state">
+        <p>${state.language === 'zh' ? '暂无字节码文件，请上传' : 'No bytecode files available, please upload'}</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  state.bytecodes.forEach((item, index) => {
+    html += `
+      <div class="card" style="margin-bottom: 15px; border-left: 4px solid var(--secondary-color);">
+        <div class="card-header" style="margin-bottom: 10px;">
+          <h4 style="margin: 0; font-size: 1.1rem;">${item.fileName}</h4>
+        </div>
+        <p style="color: var(--text-color); margin-bottom: 10px;">${item.description}</p>
+        <div style="font-size: 0.85rem; color: #777;">
+           <i class="fas fa-file-code"></i> .jsc
+        </div>
+      </div>
+    `;
+  });
+
+  elements.bytecodeList.innerHTML = html;
 }
 
 // 删除代码
@@ -564,15 +772,15 @@ function renderPackageList() {
         <div class="package-status ${pkg.installed ? 'installed' : 'not-installed'}">
           <i class="fas ${pkg.installed ? 'fa-check-circle' : 'fa-times-circle'}"></i>
           ${pkg.installed ?
-      (state.language === 'zh' ? '已安装' : 'Installed') :
-      (state.language === 'zh' ? '未安装' : 'Not Installed')}
+        (state.language === 'zh' ? '已安装' : 'Installed') :
+        (state.language === 'zh' ? '未安装' : 'Not Installed')}
         </div>
         <div class="actions" style="margin-top: 10px;">
           ${pkg.installed ?
-      `<button class="btn btn-danger uninstall-btn" data-package="${pkg.name}">
+        `<button class="btn btn-danger uninstall-btn" data-package="${pkg.name}">
               <i class="fas fa-trash"></i> ${state.language === 'zh' ? '卸载' : 'Uninstall'}
             </button>` :
-      `<button class="btn btn-success install-btn" data-package="${pkg.name}">
+        `<button class="btn btn-success install-btn" data-package="${pkg.name}">
               <i class="fas fa-download"></i> ${state.language === 'zh' ? '安装' : 'Install'}
             </button>`}
         </div>
@@ -665,6 +873,7 @@ function renderParametersForm(parametersJson) {
   // 清空现有参数
   elements.parametersForm.innerHTML = '';
   state.currentParameters = {};
+  state.currentParameterDefinitions = {}; // 重置参数定义
 
   // 如果没有参数配置，隐藏表单
   if (!parametersJson) {
@@ -674,6 +883,7 @@ function renderParametersForm(parametersJson) {
 
   try {
     const parameters = JSON.parse(parametersJson);
+    state.currentParameterDefinitions = parameters; // 保存参数定义到全局状态
     const paramNames = Object.keys(parameters);
 
     if (paramNames.length === 0) {
@@ -752,8 +962,36 @@ function executeCode() {
 
   // 收集参数
   updateParametersState();
-  const params = Object.keys(state.currentParameters).length > 0 ?
-    { params: state.currentParameters } : {};
+
+  // 处理参数类型转换
+  const paramsToSend = {};
+  if (Object.keys(state.currentParameters).length > 0) {
+    Object.keys(state.currentParameters).forEach(key => {
+      let value = state.currentParameters[key];
+      // 检查参数定义中的类型
+      if (state.currentParameterDefinitions && state.currentParameterDefinitions[key]) {
+        const def = state.currentParameterDefinitions[key];
+        if (def.type === 'number') {
+          const numValue = Number(value);
+          if (!isNaN(numValue)) {
+            value = numValue;
+          }
+        } else if (def.type === 'boolean') {
+          value = (value === 'true' || value === true);
+        } else if (def.type === 'object' || def.type === 'array') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            console.warn(`无法解析参数 ${key} 为 JSON`, e);
+          }
+        }
+      }
+      paramsToSend[key] = value;
+    });
+  }
+
+  const params = Object.keys(paramsToSend).length > 0 ?
+    { params: paramsToSend } : {};
 
   // 显示加载状态
   elements.executeOutput.textContent = state.language === 'zh' ?
@@ -835,15 +1073,15 @@ function filterPackages() {
         <div class="package-status ${pkg.installed ? 'installed' : 'not-installed'}">
           <i class="fas ${pkg.installed ? 'fa-check-circle' : 'fa-times-circle'}"></i>
           ${pkg.installed ?
-      (state.language === 'zh' ? '已安装' : 'Installed') :
-      (state.language === 'zh' ? '未安装' : 'Not Installed')}
+        (state.language === 'zh' ? '已安装' : 'Installed') :
+        (state.language === 'zh' ? '未安装' : 'Not Installed')}
         </div>
         <div class="actions" style="margin-top: 10px;">
           ${pkg.installed ?
-      `<button class="btn btn-danger uninstall-btn" data-package="${pkg.name}">
+        `<button class="btn btn-danger uninstall-btn" data-package="${pkg.name}">
               <i class="fas fa-trash"></i> ${state.language === 'zh' ? '卸载' : 'Uninstall'}
             </button>` :
-      `<button class="btn btn-success install-btn" data-package="${pkg.name}">
+        `<button class="btn btn-success install-btn" data-package="${pkg.name}">
               <i class="fas fa-download"></i> ${state.language === 'zh' ? '安装' : 'Install'}
             </button>`}
         </div>
