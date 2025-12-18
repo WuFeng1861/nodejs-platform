@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CodeModule } from './modules/code/code.module';
 import { PackageModule } from './modules/package/package.module';
+import { SystemModule } from './modules/system/system.module';
+import { ProjectReportingModule } from './modules/project-reporting/project-reporting.module';
+
+
 
 @Module({
   imports: [
@@ -18,6 +22,8 @@ import { PackageModule } from './modules/package/package.module';
     }),
     CodeModule,
     PackageModule,
+    SystemModule,
+    ProjectReportingModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
