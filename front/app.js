@@ -10,7 +10,7 @@ const state = {
   currentActionData: null,
   // apiBaseUrl: 'https://nodeplatform.wufeng98.cn/api',
   apiBaseUrl: 'http://localhost:62999/api',
-  authToken: '', // 使用特殊密码获取完整代码内容
+  authToken: 'admin123', // 使用特殊密码获取完整代码内容
   currentParameters: {}, // 存储当前执行参数
   currentParameterDefinitions: {} // 存储当前参数定义（含类型信息）
 };
@@ -515,7 +515,7 @@ function loadCodeList() {
 
   axios.get(`${state.apiBaseUrl}/codes`, {
     headers: {
-      'Authorization': `Bearer admin123`
+      'Authorization': `Bearer ${state.authToken}`
     }
   })
     .then(response => {
@@ -568,7 +568,7 @@ function loadBytecodeList() {
   `;
 
   // 使用默认token或当前token
-  const token = state.authToken || 'wufeng-nodejs-platform'; // 确保有token，否则无法获取列表
+  const token = state.authToken; // 确保有token，否则无法获取列表
 
   axios.get(`${state.apiBaseUrl}/codes/jsc-files`, {
     headers: {
@@ -844,7 +844,7 @@ function updateCodePreview() {
     // 如果代码不在缓存中，从API获取
     axios.get(`${state.apiBaseUrl}/codes/${codeId}`, {
       headers: {
-        'Authorization': `Bearer admin123`
+        'Authorization': `Bearer ${state.authToken}`
       }
     })
       .then(response => {

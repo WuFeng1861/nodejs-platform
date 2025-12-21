@@ -12,7 +12,7 @@
 3. 上传字节码代码例子
       const crypto = require('crypto');
       const checkPass = (params) => {
-        const passHash = crypto.createHash('sha256').update(params.passto.String()).digest('hex');
+        const passHash = crypto.createHash('sha256').update(params.passwd.toString()).digest('hex');
         const hashResult = '0x1545sads';
         if (passHash !== hashResult) {
           return false;
@@ -33,7 +33,7 @@ const bytenode = require('bytenode');
 const fs = require('fs');
 const path = require('path');
 
-const fileName = 'jsc_1766004354045_c268e1ec96995f32.jsc';
+const fileName = 'jsc_1766345931194_774941d3e164cfae.jsc';
 const jscDir = path.join(process.cwd(), '../jscFils');
 const jscPath = path.join(jscDir, fileName);
 /**
@@ -49,9 +49,10 @@ function fileExists(filePath) {
     return false;
   }
 }
-console.log(fileExists(jscPath), jscPath);
+console.log('文件是否存在：'+fileExists(jscPath));
 let result = require(jscPath);
 result(params);
-
+5. 参数
+{"pass": {"type": "string", "description": "密码验证", "required": true}}
 
 
